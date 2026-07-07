@@ -34,20 +34,20 @@ h1{font-size:1.3rem;font-weight:600;margin-bottom:4px;color:#ffffff}
 </head>
 <body>
 <div class="card">
-<div class="logo">🔗</div>
+<div class="logo">馃敆</div>
 <h1>SVAKOM BLE Bridge</h1>
-<p class="sub">手机蓝牙中转 · Web Bluetooth</p>
+<p class="sub">鎵嬫満钃濈墮涓浆 路 Web Bluetooth</p>
 <div class="section">
-<label>中转服务器地址</label>
-<input type="url" id="serverUrl" placeholder="https://你的地址.up.railway.app" value="https://svakom-ble-bridge-production.up.railway.app">
+<label>涓浆鏈嶅姟鍣ㄥ湴鍧€</label>
+<input type="url" id="serverUrl" placeholder="https://浣犵殑鍦板潃.up.railway.app" value="https://svakom-ble-ai-production-25fa.up.railway.app">
 </div>
-<button class="btn btn-primary" id="connectBtn" onclick="toggleConnect()">🔄 连接玩具</button>
-<button class="btn btn-danger" id="stopBtn" onclick="sendStop()" disabled>⏹ 停止</button>
+<button class="btn btn-primary" id="connectBtn" onclick="toggleConnect()">馃攧 杩炴帴鐜╁叿</button>
+<button class="btn btn-danger" id="stopBtn" onclick="sendStop()" disabled>鈴?鍋滄</button>
 <div id="status" class="status"></div>
 <div class="info">
-<p>💡 保持屏幕常亮 · 不要切到后台</p>
-<p>📱 需要 Android Chrome / Edge</p>
-<p>⚠ iOS 不支持 Web Bluetooth</p>
+<p>馃挕 淇濇寔灞忓箷甯镐寒 路 涓嶈鍒囧埌鍚庡彴</p>
+<p>馃摫 闇€瑕?Android Chrome / Edge</p>
+<p>鈿?iOS 涓嶆敮鎸?Web Bluetooth</p>
 </div>
 </div>
 <script>
@@ -67,31 +67,31 @@ await connect();
 
 async function connect() {
 const serverUrl = document.getElementById("serverUrl").value.trim().replace(/\/+$/, "");
-if (!serverUrl.startsWith("http")) { setStatus("⚠ 请输入有效的服务器地址", "offline"); return; }
+if (!serverUrl.startsWith("http")) { setStatus("鈿?璇疯緭鍏ユ湁鏁堢殑鏈嶅姟鍣ㄥ湴鍧€", "offline"); return; }
 try {
-setStatus("🔄 扫描蓝牙设备...", "waiting");
+setStatus("馃攧 鎵弿钃濈墮璁惧...", "waiting");
 device = await navigator.bluetooth.requestDevice({
 filters: [{ namePrefix: "SL278" }],
 optionalServices: [SERVICE_UUID]
 });
-setStatus("🔄 连接 " + device.name + "...", "waiting");
+setStatus("馃攧 杩炴帴 " + device.name + "...", "waiting");
 const server = await device.gatt.connect();
 const service = await server.getPrimaryService(SERVICE_UUID);
 characteristic = await service.getCharacteristic(WRITE_UUID);
-setStatus("✅ 就绪！等待指令中...", "connected");
-document.getElementById("connectBtn").textContent = "🔌 断开连接";
+setStatus("鉁?灏辩华锛佺瓑寰呮寚浠や腑...", "connected");
+document.getElementById("connectBtn").textContent = "馃攲 鏂紑杩炴帴";
 document.getElementById("stopBtn").disabled = false;
 startPolling(serverUrl);
 device.addEventListener("gattserverdisconnected", onDisconnect);
 } catch(e) {
-if (e.name === "NotFoundError") setStatus("⚠ 未找到设备，请确保已开机", "offline");
-else setStatus("❌ " + e.message, "offline");
+if (e.name === "NotFoundError") setStatus("鈿?鏈壘鍒拌澶囷紝璇风‘淇濆凡寮€鏈?, "offline");
+else setStatus("鉂?" + e.message, "offline");
 }
 }
 
 function onDisconnect() {
-setStatus("❌ 蓝牙已断开", "offline");
-document.getElementById("connectBtn").textContent = "🔄 连接玩具";
+setStatus("鉂?钃濈墮宸叉柇寮€", "offline");
+document.getElementById("connectBtn").textContent = "馃攧 杩炴帴鐜╁叿";
 document.getElementById("stopBtn").disabled = true;
 polling = false; if (pollTimer) clearTimeout(pollTimer);
 device = null; characteristic = null;
@@ -146,9 +146,10 @@ try { await characteristic.writeValueWithoutResponse(buf); } catch(e) {}
 async function sendStop() {
 if (characteristic) {
 const buf = new Uint8Array([0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0xAA]);
-try { await characteristic.writeValueWithoutResponse(buf); setStatus("⏹ 已发送停止命令", "update"); } catch(e) {}
+try { await characteristic.writeValueWithoutResponse(buf); setStatus("鈴?宸插彂閫佸仠姝㈠懡浠?, "update"); } catch(e) {}
 }
 }
 </script>
 </body>
 </html>
+

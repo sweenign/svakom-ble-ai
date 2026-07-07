@@ -5,7 +5,7 @@ echo   SVAKOM BLE Bridge - Ò»¼üÆô¶¯
 echo ====================================
 echo.
 
-set BRIDGE_URL=https://svakom-ble-bridge-production.up.railway.app
+set BRIDGE_URL=https://svakom-ble-ai-production-25fa.up.railway.app
 set BRIDGE_SECRET=d5a36c6239fc484d086e230627128c7e
 
 echo Bridge URL: %BRIDGE_URL%
