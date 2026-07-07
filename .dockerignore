@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 .git
 .gitignore
 .env
@@ -6,6 +6,3 @@
 *.bat
 *.py
 README.md
-sustaintest.py
-test.py
-scan.py
