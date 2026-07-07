@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SVAKOM BLE Bridge</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:#16161e;border:1px solid #2a2a36;border-radius:16px;padding:28px 24px;max-width:420px;width:100%;text-align:center}
+.logo{font-size:2.4rem;margin-bottom:8px}
+h1{font-size:1.3rem;font-weight:600;margin-bottom:4px;color:#ffffff}
+.sub{font-size:.85rem;color:#888;margin-bottom:20px}
+.section{margin-bottom:16px;text-align:left}
+.section label{display:block;font-size:.8rem;color:#aaa;margin-bottom:4px}
+.section input{width:100%;padding:10px 12px;background:#0f0f17;border:1px solid #333;border-radius:10px;color:#e0e0e0;font-size:.9rem;outline:none}
+.section input:focus{border-color:#5858ff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;border:none;border-radius:10px;font-size:.95rem;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:10px}
+.btn-primary{background:#5858ff;color:#fff}
+.btn-primary:hover{background:#6a6aff}
+.btn-primary:disabled{background:#333;color:#666;cursor:not-allowed}
+.btn-danger{background:#cc3333;color:#fff}
+.btn-danger:hover{background:#dd4444}
+.btn-danger:disabled{background:#333;color:#666;cursor:not-allowed}
+.status{padding:12px;border-radius:10px;font-size:.85rem;margin-top:12px;display:none}
+.status.online{display:block;background:#0d2818;color:#4ade80;border:1px solid #1a3d2a}
+.status.offline{display:block;background:#2a0d0d;color:#ff6666;border:1px solid #3d1a1a}
+.status.connected{display:block;background:#0d1a28;color:#60a5fa;border:1px solid #1a2a3d}
+.status.waiting{display:block;background:#1a1a0d;color:#fbbf24;border:1px solid #2a2a1a}
+.status.update{display:block;background:#0d2818;color:#4ade80;border:1px solid #1a3d2a}
+.logo{font-size:2rem;margin-bottom:4px}
+.info{font-size:.75rem;color:#555;margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="logo">🔗</div>
+<h1>SVAKOM BLE Bridge</h1>
+<p class="sub">手机蓝牙中转 · Web Bluetooth</p>
+<div class="section">
+<label>中转服务器地址</label>
+<input type="url" id="serverUrl" placeholder="https://你的地址.up.railway.app" value="https://svakom-ble-bridge-production.up.railway.app">
+</div>
+<button class="btn btn-primary" id="connectBtn" onclick="toggleConnect()">🔄 连接玩具</button>
+<button class="btn btn-danger" id="stopBtn" onclick="sendStop()" disabled>⏹ 停止</button>
+<div id="status" class="status"></div>
+<div class="info">
+<p>💡 保持屏幕常亮 · 不要切到后台</p>
+<p>📱 需要 Android Chrome / Edge</p>
+<p>⚠ iOS 不支持 Web Bluetooth</p>
+</div>
+</div>
+<script>
+const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
+const WRITE_UUID   = "0000ffe1-0000-1000-8000-00805f9b34fb";
+let device = null, characteristic = null, polling = false, pollTimer = null;
+
+function setStatus(msg, type) {
+const el = document.getElementById("status");
+el.textContent = msg; el.className = "status " + type;
+}
+
+async function toggleConnect() {
+if (device && device.gatt?.connected) { await disconnect(); return; }
+await connect();
+}
+
+async function connect() {
+const serverUrl = document.getElementById("serverUrl").value.trim().replace(/\/+$/, "");
+if (!serverUrl.startsWith("http")) { setStatus("⚠ 请输入有效的服务器地址", "offline"); return; }
+try {
+setStatus("🔄 扫描蓝牙设备...", "waiting");
+device = await navigator.bluetooth.requestDevice({
+filters: [{ namePrefix: "SL278" }],
+optionalServices: [SERVICE_UUID]
+});
+setStatus("🔄 连接 " + device.name + "...", "waiting");
+const server = await device.gatt.connect();
+const service = await server.getPrimaryService(SERVICE_UUID);
+characteristic = await service.getCharacteristic(WRITE_UUID);
+setStatus("✅ 就绪！等待指令中...", "connected");
+document.getElementById("connectBtn").textContent = "🔌 断开连接";
+document.getElementById("stopBtn").disabled = false;
+startPolling(serverUrl);
+device.addEventListener("gattserverdisconnected", onDisconnect);
+} catch(e) {
+if (e.name === "NotFoundError") setStatus("⚠ 未找到设备，请确保已开机", "offline");
+else setStatus("❌ " + e.message, "offline");
+}
+}
+
+function onDisconnect() {
+setStatus("❌ 蓝牙已断开", "offline");
+document.getElementById("connectBtn").textContent = "🔄 连接玩具";
+document.getElementById("stopBtn").disabled = true;
+polling = false; if (pollTimer) clearTimeout(pollTimer);
+device = null; characteristic = null;
+}
+
+async function disconnect() {
+if (pollTimer) clearTimeout(pollTimer); polling = false;
+if (device && device.gatt?.connected) { device.gatt.disconnect(); }
+onDisconnect();
+}
+
+function startPolling(serverUrl) {
+polling = true;
+async function poll() {
+if (!polling || !characteristic) return;
+try {
+const r = await fetch(serverUrl + "/toy-next", { signal: AbortSignal.timeout(4000) });
+if (r.ok) {
+const cmd = await r.json();
+if (cmd && cmd.type !== "hello" && Object.keys(cmd).length) {
+await writeCmd(cmd);
+}
+}
+} catch(e) { /* ignore */ }
+if (polling) pollTimer = setTimeout(poll, 300);
+}
+poll();
+}
+
+async function writeCmd(cmd) {
+if (!characteristic) return;
+let buf = null;
+if (cmd.stop) {
+buf = new Uint8Array([0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0xAA]);
+} else if (cmd.pattern !== undefined) {
+const mode = Math.max(1, Math.min(8, cmd.pattern));
+const level = Math.max(1, Math.min(5, Math.round((cmd.level || 0.6) * 5)));
+buf = new Uint8Array([0x55, 0x03, 0x00, 0x00, mode, level, 0x00]);
+} else {
+const speed = cmd.speed ?? cmd.suck ?? cmd.intensity;
+if (speed !== undefined) {
+const v = Math.max(0, Math.min(1, speed));
+const b = Math.round(v * 255);
+buf = new Uint8Array([0x55, 0x04, 0x00, 0x00, b > 0 ? 1 : 0, b, 0xAA]);
+}
+}
+if (buf) {
+try { await characteristic.writeValueWithoutResponse(buf); } catch(e) {}
+}
+}
+
+async function sendStop() {
+if (characteristic) {
+const buf = new Uint8Array([0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0xAA]);
+try { await characteristic.writeValueWithoutResponse(buf); setStatus("⏹ 已发送停止命令", "update"); } catch(e) {}
+}
+}
+</script>
+</body>
+</html>

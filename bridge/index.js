@@ -1,4 +1,6 @@
 ﻿import express from "express";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import crypto from "crypto";
 
 const app = express();
@@ -6,6 +8,10 @@ app.use(express.json());
 
 const SECRET = process.env.BRIDGE_SECRET || "";
 const PORT = process.env.PORT || 3000;
+
+// Serve toy.html for phone BLE bridge
+const __dirname = dirname(fileURLToPath(import.meta.url));
+app.use(express.static(__dirname));
 
 // --- Command queue ---
 // The BLE bridge polls /toy-next; the MCP / Claude pushes commands in.

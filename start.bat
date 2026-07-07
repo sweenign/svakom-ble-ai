@@ -22,7 +22,7 @@ echo °´ Ctrl+C Í£Ö¹
 echo ====================================
 echo.
 
-C:\Users\16054\AppData\Local\Programs\Python\Python312\python.exe bridge.py
+C:\Users\16054\AppData\Local\Programs\Python\Python312\python.exe --no-warn-script-location bridge.py
 
 echo.
 echo Bridge ÒÑÍ£Ö¹¡£

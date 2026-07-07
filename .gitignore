@@ -1,0 +1,4 @@
+﻿node_modules/
+.env
+test_mcp*.json
+fix_imports.py
